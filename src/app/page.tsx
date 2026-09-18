@@ -1075,11 +1075,8 @@ export default function Home() {
         {/* HEADER */}
 
         <header className="chat-header">
+             <div className="header-agent">
 
-        
-
-          <div className="header-agent">
-No.
             <div className="header-icon">
               🛒
             </div>
