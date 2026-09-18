@@ -10,41 +10,110 @@ type Message = {
 type Conversation = {
   id?: string;
   conversation_id?: string;
+  agent_id?: string;
   title?: string;
   name?: string;
+  created_at?: string;
+  updated_at?: string;
+  status?: string;
 };
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [conversationId, setConversationId] =
+    useState<string | null>(null);
 
-  // Load conversations when page opens
+  const [conversations, setConversations] =
+    useState<Conversation[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] =
+    useState(false);
+
+  const [error, setError] = useState<string | null>(
+    null
+  );
+
+  // =========================================================
+  // LOAD CONVERSATIONS WHEN PAGE OPENS
+  // =========================================================
+
   useEffect(() => {
     loadConversations();
   }, []);
 
-  // Get all conversations
+  // =========================================================
+  // GET ALL CONVERSATIONS
+  // =========================================================
+
   async function loadConversations() {
     try {
-      const response = await fetch("/api/conversations");
+      const response = await fetch(
+        "/api/conversations",
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
 
       const data = await response.json();
 
+      console.log(
+        "Conversations response:",
+        data
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            "Failed to load conversations"
+        );
+      }
+
+      /*
+       * Your API can return:
+       *
+       * {
+       *   conversations: [...]
+       * }
+       *
+       * OR Elastic directly:
+       *
+       * {
+       *   results: [...]
+       * }
+       *
+       * OR an array.
+       */
+
       if (Array.isArray(data)) {
         setConversations(data);
-      } else if (Array.isArray(data.results)) {
+      } else if (
+        Array.isArray(data.conversations)
+      ) {
+        setConversations(data.conversations);
+      } else if (
+        Array.isArray(data.results)
+      ) {
         setConversations(data.results);
+      } else {
+        setConversations([]);
       }
     } catch (error) {
-      console.error("Failed to load conversations:", error);
+      console.error(
+        "Failed to load conversations:",
+        error
+      );
+
+      setConversations([]);
     }
   }
 
-  // Send message to Ecommerce Agent
+  // =========================================================
+  // SEND MESSAGE
+  // =========================================================
+
   async function sendMessage() {
     const message = input.trim();
 
@@ -53,39 +122,57 @@ export default function Home() {
     }
 
     setInput("");
+    setError(null);
 
     // Add user message immediately
+    const userMessage: Message = {
+      role: "user",
+      content: message,
+    };
+
     setMessages((previous) => [
       ...previous,
-      {
-        role: "user",
-        content: message,
-      },
+      userMessage,
     ]);
 
     setLoading(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          input: message,
+      const body: {
+        input: string;
+        conversation_id?: string;
+      } = {
+        input: message,
+      };
 
-          // Only send conversation_id when continuing
-          ...(conversationId
-            ? {
-                conversation_id: conversationId,
-              }
-            : {}),
-        }),
-      });
+      // Continue existing conversation
+      if (conversationId) {
+        body.conversation_id =
+          conversationId;
+      }
+
+      console.log(
+        "Sending chat request:",
+        body
+      );
+
+      const response = await fetch(
+        "/api/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
       const data = await response.json();
 
-      console.log("Elastic response:", data);
+      console.log(
+        "Elastic chat response:",
+        data
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -95,40 +182,60 @@ export default function Home() {
         );
       }
 
-      // Get conversation ID returned by Elastic
+      // =====================================================
+      // GET CONVERSATION ID
+      // =====================================================
+
       const newConversationId =
         data.conversation_id ||
         data.conversationId ||
+        data.conversation?.id ||
+        data.id ||
         conversationId;
 
       if (newConversationId) {
-        setConversationId(newConversationId);
+        setConversationId(
+          newConversationId
+        );
       }
 
-      // Extract assistant response
-      const answer = extractAssistantResponse(data);
+      // =====================================================
+      // GET ASSISTANT RESPONSE
+      // =====================================================
+
+      const answer =
+        extractAssistantResponse(data);
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: answer,
+      };
 
       setMessages((previous) => [
         ...previous,
-        {
-          role: "assistant",
-          content: answer,
-        },
+        assistantMessage,
       ]);
 
       // Refresh sidebar
       await loadConversations();
     } catch (error) {
-      console.error("Chat error:", error);
+      console.error(
+        "Chat error:",
+        error
+      );
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong.";
+
+      setError(errorMessage);
 
       setMessages((previous) => [
         ...previous,
         {
           role: "assistant",
-          content:
-            error instanceof Error
-              ? `Error: ${error.message}`
-              : "Something went wrong.",
+          content: `Error: ${errorMessage}`,
         },
       ]);
     } finally {
@@ -136,55 +243,152 @@ export default function Home() {
     }
   }
 
-  // Extract response from Elastic API
-  function extractAssistantResponse(data: any): string {
-    if (typeof data.response === "string") {
+  // =========================================================
+  // EXTRACT ASSISTANT RESPONSE
+  // =========================================================
+
+  function extractAssistantResponse(
+    data: any
+  ): string {
+    // Simple response
+    if (
+      typeof data?.response === "string"
+    ) {
       return data.response;
     }
 
-    if (typeof data.message === "string") {
+    // Simple message
+    if (
+      typeof data?.message === "string"
+    ) {
       return data.message;
     }
 
-    if (typeof data.output === "string") {
+    // Output
+    if (
+      typeof data?.output === "string"
+    ) {
       return data.output;
     }
 
-    if (data.response?.message) {
+    // Text
+    if (
+      typeof data?.text === "string"
+    ) {
+      return data.text;
+    }
+
+    // response.message
+    if (
+      typeof data?.response?.message ===
+      "string"
+    ) {
       return data.response.message;
     }
 
-    if (Array.isArray(data.response?.messages)) {
+    // response.text
+    if (
+      typeof data?.response?.text ===
+      "string"
+    ) {
+      return data.response.text;
+    }
+
+    // response.messages
+    if (
+      Array.isArray(
+        data?.response?.messages
+      )
+    ) {
       return data.response.messages
         .map((message: any) => {
-          if (typeof message === "string") {
+          if (
+            typeof message === "string"
+          ) {
             return message;
           }
 
           return (
-            message.content ||
-            message.text ||
-            message.message ||
+            message?.content ||
+            message?.text ||
+            message?.message ||
             ""
           );
         })
-        .filter(Boolean)
+        .filter(
+          (value: unknown): value is string =>
+            typeof value === "string" &&
+            value.trim().length > 0
+        )
         .join("\n");
     }
 
-    return JSON.stringify(data, null, 2);
+    // messages
+    if (
+      Array.isArray(data?.messages)
+    ) {
+      return data.messages
+        .map((message: any) => {
+          if (
+            typeof message === "string"
+          ) {
+            return message;
+          }
+
+          return (
+            message?.content ||
+            message?.text ||
+            message?.message ||
+            ""
+          );
+        })
+        .filter(
+          (value: unknown): value is string =>
+            typeof value === "string" &&
+            value.trim().length > 0
+        )
+        .join("\n");
+    }
+
+    // Last fallback
+    return JSON.stringify(
+      data,
+      null,
+      2
+    );
   }
 
-  // Open an existing conversation
-  async function openConversation(id: string) {
+  // =========================================================
+  // OPEN EXISTING CONVERSATION
+  // =========================================================
+
+  async function openConversation(
+    id: string
+  ) {
+    if (!id) {
+      return;
+    }
+
     setLoadingHistory(true);
+    setError(null);
 
     try {
       const response = await fetch(
-        `/api/conversations/${id}`
+        `/api/conversations/${encodeURIComponent(
+          id
+        )}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
       );
 
       const data = await response.json();
+
+      console.log(
+        "Conversation detail:",
+        data
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -193,9 +397,12 @@ export default function Home() {
         );
       }
 
+      // Set selected conversation
       setConversationId(id);
 
-      const history = extractMessages(data);
+      // Extract history
+      const history =
+        extractMessages(data);
 
       setMessages(history);
     } catch (error) {
@@ -203,59 +410,88 @@ export default function Home() {
         "Conversation loading error:",
         error
       );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load conversation."
+      );
     } finally {
       setLoadingHistory(false);
     }
   }
 
-  // Convert Elastic conversation history
-  // into UI messages
-  function extractMessages(data: any): Message[] {
+  // =========================================================
+  // EXTRACT CONVERSATION MESSAGES
+  // =========================================================
+
+  function extractMessages(
+    data: any
+  ): Message[] {
     const source =
-      data.messages ||
-      data.conversation?.messages ||
-      data.history ||
+      data?.messages ||
+      data?.conversation?.messages ||
+      data?.history ||
+      data?.results ||
       [];
 
     if (!Array.isArray(source)) {
       return [];
     }
 
-    return source
-      .map((message: any) => {
-        const role =
-          message.role === "user"
-            ? "user"
-            : "assistant";
+    const messages: Message[] = source
+      .map(
+        (message: any): Message => {
+          const role: "user" | "assistant" =
+            message?.role === "user"
+              ? "user"
+              : "assistant";
 
-        const content =
-          message.content ||
-          message.text ||
-          message.message ||
-          "";
+          const content =
+            message?.content ??
+            message?.text ??
+            message?.message ??
+            "";
 
-        return {
-          role,
-          content:
-            typeof content === "string"
-              ? content
-              : JSON.stringify(content),
-        };
-      })
+          return {
+            role,
+            content:
+              typeof content === "string"
+                ? content
+                : JSON.stringify(
+                    content
+                  ),
+          };
+        }
+      )
       .filter(
-        (message: Message) => message.content
+        (
+          message: Message
+        ) =>
+          message.content
+            .trim()
+            .length > 0
       );
+
+    return messages;
   }
 
-  // Start a completely new conversation
+  // =========================================================
+  // NEW CHAT
+  // =========================================================
+
   function newChat() {
     setConversationId(null);
     setMessages([]);
     setInput("");
+    setError(null);
   }
 
-  // Enter = send
-  // Shift + Enter = new line
+  // =========================================================
+  // ENTER TO SEND
+  // SHIFT + ENTER = NEW LINE
+  // =========================================================
+
   function handleKeyDown(
     event: React.KeyboardEvent<HTMLTextAreaElement>
   ) {
@@ -264,33 +500,67 @@ export default function Home() {
       !event.shiftKey
     ) {
       event.preventDefault();
-      sendMessage();
+
+      if (
+        input.trim() &&
+        !loading
+      ) {
+        sendMessage();
+      }
     }
   }
+
+  // =========================================================
+  // FORMAT DATE
+  // =========================================================
+
+  function formatDate(
+    date?: string
+  ): string {
+    if (!date) {
+      return "";
+    }
+
+    try {
+      return new Date(
+        date
+      ).toLocaleString();
+    } catch {
+      return "";
+    }
+  }
+
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
     <main className="chat-app">
 
-      {/* =========================
+      {/* ===================================================
           SIDEBAR
-      ========================== */}
+      ==================================================== */}
 
       <aside className="sidebar">
 
         <div className="sidebar-header">
 
           <div className="brand">
+
             <div className="brand-icon">
               🛒
             </div>
 
             <div>
-              <h2>Ecommerce Agent</h2>
+              <h2>
+                Ecommerce Agent
+              </h2>
 
               <span>
                 Analytics Assistant
               </span>
             </div>
+
           </div>
 
           <button
@@ -308,14 +578,18 @@ export default function Home() {
             Conversations
           </div>
 
-          {conversations.length === 0 && (
+          {conversations.length ===
+            0 && (
             <div className="empty">
               No conversations
             </div>
           )}
 
           {conversations.map(
-            (conversation, index) => {
+            (
+              conversation,
+              index
+            ) => {
 
               const id =
                 conversation.id ||
@@ -325,45 +599,73 @@ export default function Home() {
                 return null;
               }
 
+              const title =
+                conversation.title ||
+                conversation.name ||
+                `Conversation ${
+                  index + 1
+                }`;
+
+              const isActive =
+                id ===
+                conversationId;
+
               return (
                 <button
                   key={id}
                   className={`conversation ${
-                    id === conversationId
+                    isActive
                       ? "active"
                       : ""
                   }`}
                   onClick={() =>
-                    openConversation(id)
+                    openConversation(
+                      id
+                    )
+                  }
+                  disabled={
+                    loadingHistory
                   }
                 >
+
                   <span className="conversation-icon">
                     💬
                   </span>
 
-                  <span className="conversation-text">
-                    {conversation.title ||
-                      conversation.name ||
-                      `Conversation ${
-                        index + 1
-                      }`}
+                  <span className="conversation-content">
+
+                    <span className="conversation-text">
+                      {title}
+                    </span>
+
+                    {conversation.updated_at && (
+                      <span className="conversation-date">
+                        {formatDate(
+                          conversation.updated_at
+                        )}
+                      </span>
+                    )}
+
                   </span>
+
                 </button>
               );
             }
           )}
 
         </div>
+
       </aside>
 
-
-      {/* =========================
+      {/* ===================================================
           CHAT SECTION
-      ========================== */}
+      ==================================================== */}
 
       <section className="chat-section">
 
-        {/* Header */}
+        {/* =================================================
+            HEADER
+        ================================================== */}
 
         <header className="chat-header">
 
@@ -374,13 +676,16 @@ export default function Home() {
             </div>
 
             <div>
+
               <h1>
                 Ecommerce Analytics Agent
               </h1>
 
               <p>
-                Powered by Elastic Agent Builder
+                Powered by Elastic Agent
+                Builder
               </p>
+
             </div>
 
           </div>
@@ -393,134 +698,167 @@ export default function Home() {
 
         </header>
 
+        {/* =================================================
+            ERROR
+        ================================================== */}
 
-        {/* Messages */}
+        {error && (
+          <div className="error-banner">
+            {error}
+
+            <button
+              onClick={() =>
+                setError(null)
+              }
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* =================================================
+            MESSAGES
+        ================================================== */}
 
         <div className="messages">
 
-          {/* Welcome */}
+          {/* =================================================
+              WELCOME SCREEN
+          ================================================== */}
 
-          {messages.length === 0 && (
-            <div className="welcome">
+          {messages.length ===
+            0 &&
+            !loadingHistory && (
+              <div className="welcome">
 
-              <div className="welcome-icon">
-                🛒
+                <div className="welcome-icon">
+                  🛒
+                </div>
+
+                <h2>
+                  How can I help you?
+                </h2>
+
+                <p>
+                  Ask questions about
+                  your ecommerce data,
+                  sales, customers,
+                  products and orders.
+                </p>
+
+                <div className="examples">
+
+                  <button
+                    onClick={() =>
+                      setInput(
+                        "Show me total sales"
+                      )
+                    }
+                  >
+                    💰 Total sales
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setInput(
+                        "Show me the top selling products"
+                      )
+                    }
+                  >
+                    📦 Top products
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setInput(
+                        "Show me the number of orders"
+                      )
+                    }
+                  >
+                    🛍️ Total orders
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setInput(
+                        "Show me sales by country"
+                      )
+                    }
+                  >
+                    🌎 Sales by country
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setInput(
+                        "Which products have the highest revenue?"
+                      )
+                    }
+                  >
+                    📈 Highest revenue
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setInput(
+                        "Analyze ecommerce sales performance"
+                      )
+                    }
+                  >
+                    📊 Sales analysis
+                  </button>
+
+                </div>
+
               </div>
+            )}
 
-              <h2>
-                How can I help you?
-              </h2>
+          {/* =================================================
+              CONVERSATION LOADING
+          ================================================== */}
 
-              <p>
-                Ask questions about your
-                ecommerce data, sales,
-                customers, products and
-                orders.
-              </p>
-
-
-              <div className="examples">
-
-                <button
-                  onClick={() =>
-                    setInput(
-                      "Show me total sales"
-                    )
-                  }
-                >
-                  💰 Total sales
-                </button>
-
-
-                <button
-                  onClick={() =>
-                    setInput(
-                      "Show me the top selling products"
-                    )
-                  }
-                >
-                  📦 Top products
-                </button>
-
-
-                <button
-                  onClick={() =>
-                    setInput(
-                      "Show me the number of orders"
-                    )
-                  }
-                >
-                  🛍️ Total orders
-                </button>
-
-
-                <button
-                  onClick={() =>
-                    setInput(
-                      "Show me sales by country"
-                    )
-                  }
-                >
-                  🌎 Sales by country
-                </button>
-
-
-                <button
-                  onClick={() =>
-                    setInput(
-                      "Which products have the highest revenue?"
-                    )
-                  }
-                >
-                  📈 Highest revenue
-                </button>
-
-
-                <button
-                  onClick={() =>
-                    setInput(
-                      "Analyze ecommerce sales performance"
-                    )
-                  }
-                >
-                  📊 Sales analysis
-                </button>
-
-              </div>
-
+          {loadingHistory && (
+            <div className="loading-history">
+              Loading conversation...
             </div>
           )}
 
-
-          {/* Messages */}
+          {/* =================================================
+              CHAT MESSAGES
+          ================================================== */}
 
           {messages.map(
-            (message, index) => (
-
+            (
+              message,
+              index
+            ) => (
               <div
-                key={index}
+                key={`${index}-${message.role}`}
                 className={`message-row ${message.role}`}
               >
 
                 <div className="avatar">
 
-                  {message.role === "user"
+                  {message.role ===
+                  "user"
                     ? "U"
                     : "🛒"}
 
                 </div>
 
                 <div className="message">
+
                   {message.content}
+
                 </div>
 
               </div>
-
             )
           )}
 
-
-          {/* Loading */}
+          {/* =================================================
+              TYPING INDICATOR
+          ================================================== */}
 
           {loading && (
             <div className="message-row assistant">
@@ -540,19 +878,11 @@ export default function Home() {
             </div>
           )}
 
-
-          {/* Loading conversation */}
-
-          {loadingHistory && (
-            <div className="loading-history">
-              Loading conversation...
-            </div>
-          )}
-
         </div>
 
-
-        {/* Input */}
+        {/* =================================================
+            INPUT AREA
+        ================================================== */}
 
         <div className="input-area">
 
@@ -560,17 +890,25 @@ export default function Home() {
 
             <textarea
               value={input}
-              onChange={(event) =>
-                setInput(event.target.value)
+              onChange={(
+                event
+              ) =>
+                setInput(
+                  event.target.value
+                )
               }
-              onKeyDown={handleKeyDown}
+              onKeyDown={
+                handleKeyDown
+              }
               placeholder="Ask your Ecommerce Agent..."
               rows={1}
               disabled={loading}
             />
 
             <button
-              onClick={sendMessage}
+              onClick={
+                sendMessage
+              }
               disabled={
                 loading ||
                 !input.trim()
@@ -583,8 +921,8 @@ export default function Home() {
           </div>
 
           <div className="input-help">
-            Enter to send · Shift + Enter for
-            new line
+            Enter to send · Shift +
+            Enter for new line
           </div>
 
         </div>
