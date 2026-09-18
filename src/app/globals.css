@@ -13,7 +13,7 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
@@ -46,7 +46,7 @@ button:disabled {
 }
 
 /* =========================================================
-   MAIN APP
+   APP
 ========================================================= */
 
 .chat-app {
@@ -58,6 +58,8 @@ button:disabled {
   background: #ffffff;
 
   overflow: hidden;
+
+  position: relative;
 }
 
 /* =========================================================
@@ -73,11 +75,15 @@ button:disabled {
   flex-direction: column;
 
   background: #f8fafc;
+
   border-right: 1px solid #e5e7eb;
 
   overflow: hidden;
 
   z-index: 100;
+
+  transition:
+    transform 0.25s ease;
 }
 
 .sidebar-header {
@@ -95,11 +101,15 @@ button:disabled {
   gap: 12px;
 
   margin-bottom: 18px;
+
+  min-width: 0;
 }
 
 .brand-icon {
   width: 44px;
   height: 44px;
+
+  flex-shrink: 0;
 
   display: flex;
   align-items: center;
@@ -107,22 +117,30 @@ button:disabled {
 
   border-radius: 12px;
 
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #4f46e5
-  );
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #4f46e5
+    );
 
   font-size: 22px;
 
   box-shadow:
-    0 6px 18px rgba(37, 99, 235, 0.2);
+    0 6px 18px
+    rgba(37, 99, 235, 0.2);
+}
+
+.brand-text {
+  min-width: 0;
+  flex: 1;
 }
 
 .brand h2 {
   margin: 0;
 
   font-size: 16px;
+
   font-weight: 700;
 
   color: #111827;
@@ -138,19 +156,52 @@ button:disabled {
   color: #6b7280;
 }
 
+.sidebar-close {
+  display: none;
+
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  border: 0;
+
+  border-radius: 8px;
+
+  background: #f1f5f9;
+
+  color: #475569;
+
+  font-size: 22px;
+
+  line-height: 1;
+}
+
+.sidebar-close:hover {
+  background: #e2e8f0;
+}
+
 .new-chat {
   width: 100%;
-
   min-height: 44px;
 
   border: 0;
+
   border-radius: 10px;
 
   background: #2563eb;
+
   color: white;
 
   font-size: 14px;
+
   font-weight: 600;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
 
   transition:
     background 0.2s ease,
@@ -179,12 +230,17 @@ button:disabled {
 }
 
 .conversation-title {
-  padding: 8px 10px 12px;
+  padding:
+    8px
+    10px
+    12px;
 
   font-size: 11px;
+
   font-weight: 700;
 
   text-transform: uppercase;
+
   letter-spacing: 0.08em;
 
   color: #9ca3af;
@@ -213,6 +269,7 @@ button:disabled {
   margin-bottom: 4px;
 
   border: 0;
+
   border-radius: 10px;
 
   background: transparent;
@@ -268,9 +325,11 @@ button:disabled {
   overflow: hidden;
 
   text-overflow: ellipsis;
+
   white-space: nowrap;
 
   font-size: 13px;
+
   font-weight: 500;
 }
 
@@ -288,10 +347,13 @@ button:disabled {
 
 .chat-section {
   flex: 1;
+
   min-width: 0;
+
   height: 100dvh;
 
   display: flex;
+
   flex-direction: column;
 
   background: #ffffff;
@@ -306,19 +368,70 @@ button:disabled {
 .chat-header {
   min-height: 76px;
 
-  padding: 14px 24px;
+  padding:
+    14px
+    24px;
 
   display: flex;
   align-items: center;
+
   justify-content: space-between;
 
   gap: 15px;
 
   border-bottom: 1px solid #e5e7eb;
 
-  background: rgba(255, 255, 255, 0.95);
+  background:
+    rgba(255, 255, 255, 0.95);
 
   flex-shrink: 0;
+}
+
+.header-left {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.menu-button {
+  display: none;
+
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  gap: 4px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  padding: 0;
+}
+
+.menu-button:hover {
+  background: #f8fafc;
+}
+
+.menu-button span {
+  display: block;
+
+  width: 18px;
+  height: 2px;
+
+  border-radius: 2px;
+
+  background: #374151;
 }
 
 .header-agent {
@@ -347,15 +460,21 @@ button:disabled {
   font-size: 22px;
 }
 
+.header-agent-info {
+  min-width: 0;
+}
+
 .header-agent h1 {
   margin: 0;
 
   overflow: hidden;
 
   text-overflow: ellipsis;
+
   white-space: nowrap;
 
   font-size: 17px;
+
   font-weight: 700;
 
   color: #111827;
@@ -367,12 +486,20 @@ button:disabled {
   font-size: 12px;
 
   color: #6b7280;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
 }
 
 .conversation-id {
   max-width: 260px;
 
-  padding: 7px 10px;
+  padding:
+    7px
+    10px;
 
   border-radius: 7px;
 
@@ -387,7 +514,18 @@ button:disabled {
   overflow: hidden;
 
   text-overflow: ellipsis;
+
   white-space: nowrap;
+
+  flex-shrink: 1;
+}
+
+/* =========================================================
+   MOBILE OVERLAY
+========================================================= */
+
+.sidebar-overlay {
+  display: none;
 }
 
 /* =========================================================
@@ -395,17 +533,23 @@ button:disabled {
 ========================================================= */
 
 .error-banner {
-  margin: 12px 24px;
+  margin:
+    12px
+    24px;
 
-  padding: 11px 14px;
+  padding:
+    11px
+    14px;
 
   display: flex;
   align-items: center;
+
   justify-content: space-between;
 
   gap: 12px;
 
   border: 1px solid #fecaca;
+
   border-radius: 9px;
 
   background: #fef2f2;
@@ -417,6 +561,12 @@ button:disabled {
   flex-shrink: 0;
 }
 
+.error-banner span {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
 .error-banner button {
   width: 28px;
   height: 28px;
@@ -424,6 +574,7 @@ button:disabled {
   flex-shrink: 0;
 
   border: 0;
+
   border-radius: 6px;
 
   background: transparent;
@@ -443,18 +594,26 @@ button:disabled {
   width: 100%;
 
   overflow-y: auto;
+
   overflow-x: hidden;
 
-  padding: 30px 24px 40px;
+  padding:
+    30px
+    24px
+    40px;
 
   scroll-behavior: smooth;
 }
 
 .message-row {
   width: 100%;
+
   max-width: 900px;
 
-  margin: 0 auto 20px;
+  margin:
+    0
+    auto
+    20px;
 
   display: flex;
 
@@ -482,6 +641,7 @@ button:disabled {
   background: #eff6ff;
 
   font-size: 15px;
+
   font-weight: 700;
 }
 
@@ -492,9 +652,14 @@ button:disabled {
 }
 
 .message {
-  max-width: min(75%, 720px);
+  max-width:
+    min(75%, 720px);
 
-  padding: 12px 15px;
+  min-width: 0;
+
+  padding:
+    12px
+    15px;
 
   border-radius: 15px;
 
@@ -503,13 +668,18 @@ button:disabled {
   color: #1f2937;
 
   font-size: 14px;
+
   line-height: 1.65;
 
   white-space: pre-wrap;
+
   overflow-wrap: anywhere;
 
+  word-break: break-word;
+
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.03);
+    0 1px 2px
+    rgba(0, 0, 0, 0.03);
 }
 
 .message-row.user .message {
@@ -524,17 +694,30 @@ button:disabled {
   border-bottom-left-radius: 4px;
 }
 
+.message-content {
+  width: 100%;
+
+  white-space: pre-wrap;
+
+  overflow-wrap: anywhere;
+
+  word-break: break-word;
+}
+
 /* =========================================================
    TYPING
 ========================================================= */
 
 .typing {
   display: flex;
+
   align-items: center;
 
   gap: 5px;
 
   min-width: 60px;
+
+  min-height: 42px;
 }
 
 .typing span {
@@ -547,7 +730,11 @@ button:disabled {
 
   background: #9ca3af;
 
-  animation: typing 1.3s infinite ease-in-out;
+  animation:
+    typing
+    1.3s
+    infinite
+    ease-in-out;
 }
 
 .typing span:nth-child(2) {
@@ -575,7 +762,7 @@ button:disabled {
 }
 
 /* =========================================================
-   LOADING HISTORY
+   HISTORY LOADING
 ========================================================= */
 
 .loading-history {
@@ -583,11 +770,39 @@ button:disabled {
 
   padding: 30px;
 
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
 
   color: #6b7280;
 
   font-size: 14px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+
+  border:
+    2px solid #e5e7eb;
+
+  border-top-color: #2563eb;
+
+  border-radius: 50%;
+
+  animation:
+    spin
+    0.7s
+    linear
+    infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* =========================================================
@@ -596,9 +811,12 @@ button:disabled {
 
 .welcome {
   width: 100%;
+
   max-width: 800px;
 
-  margin: 50px auto;
+  margin:
+    50px
+    auto;
 
   padding: 20px;
 
@@ -609,7 +827,10 @@ button:disabled {
   width: 70px;
   height: 70px;
 
-  margin: 0 auto 18px;
+  margin:
+    0
+    auto
+    18px;
 
   display: flex;
   align-items: center;
@@ -617,11 +838,12 @@ button:disabled {
 
   border-radius: 20px;
 
-  background: linear-gradient(
-    135deg,
-    #eff6ff,
-    #eef2ff
-  );
+  background:
+    linear-gradient(
+      135deg,
+      #eff6ff,
+      #eef2ff
+    );
 
   font-size: 34px;
 }
@@ -630,6 +852,7 @@ button:disabled {
   margin: 0;
 
   font-size: 28px;
+
   font-weight: 750;
 
   color: #111827;
@@ -638,7 +861,10 @@ button:disabled {
 .welcome p {
   max-width: 600px;
 
-  margin: 10px auto 26px;
+  margin:
+    10px
+    auto
+    26px;
 
   color: #6b7280;
 
@@ -650,7 +876,8 @@ button:disabled {
 .examples {
   display: grid;
 
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns:
+    repeat(3, 1fr);
 
   gap: 10px;
 
@@ -662,9 +889,13 @@ button:disabled {
 .examples button {
   min-height: 50px;
 
-  padding: 10px 12px;
+  padding:
+    10px
+    12px;
 
-  border: 1px solid #e5e7eb;
+  border:
+    1px solid #e5e7eb;
+
   border-radius: 10px;
 
   background: #ffffff;
@@ -676,7 +907,7 @@ button:disabled {
   text-align: left;
 
   transition:
-    border 0.2s ease,
+    border-color 0.2s ease,
     background 0.2s ease,
     transform 0.2s ease;
 }
@@ -686,17 +917,21 @@ button:disabled {
 
   background: #eff6ff;
 
-  transform: translateY(-1px);
+  transform:
+    translateY(-1px);
 }
 
 /* =========================================================
-   INPUT AREA
+   INPUT
 ========================================================= */
 
 .input-area {
   width: 100%;
 
-  padding: 14px 24px 18px;
+  padding:
+    14px
+    24px
+    18px;
 
   background: #ffffff;
 
@@ -705,6 +940,7 @@ button:disabled {
 
 .input-box {
   width: 100%;
+
   max-width: 900px;
 
   margin: 0 auto;
@@ -712,19 +948,27 @@ button:disabled {
   min-height: 56px;
 
   display: flex;
+
   align-items: flex-end;
 
   gap: 10px;
 
-  padding: 8px 8px 8px 16px;
+  padding:
+    8px
+    8px
+    8px
+    16px;
 
-  border: 1px solid #d1d5db;
+  border:
+    1px solid #d1d5db;
+
   border-radius: 15px;
 
   background: #ffffff;
 
   box-shadow:
-    0 5px 20px rgba(0, 0, 0, 0.06);
+    0 5px 20px
+    rgba(0, 0, 0, 0.06);
 
   transition:
     border-color 0.2s ease,
@@ -735,7 +979,8 @@ button:disabled {
   border-color: #93c5fd;
 
   box-shadow:
-    0 5px 25px rgba(37, 99, 235, 0.1);
+    0 5px 25px
+    rgba(37, 99, 235, 0.1);
 }
 
 .input-box textarea {
@@ -745,11 +990,14 @@ button:disabled {
 
   max-height: 160px;
 
-  padding: 8px 0;
+  padding:
+    8px
+    0;
 
   resize: none;
 
   border: 0;
+
   outline: 0;
 
   background: transparent;
@@ -772,6 +1020,7 @@ button:disabled {
   flex-shrink: 0;
 
   border: 0;
+
   border-radius: 10px;
 
   background: #2563eb;
@@ -779,6 +1028,7 @@ button:disabled {
   color: white;
 
   font-size: 22px;
+
   font-weight: 600;
 
   display: flex;
@@ -793,7 +1043,8 @@ button:disabled {
 .input-box button:hover:not(:disabled) {
   background: #1d4ed8;
 
-  transform: translateY(-1px);
+  transform:
+    translateY(-1px);
 }
 
 .input-box button:disabled {
@@ -804,11 +1055,17 @@ button:disabled {
 
 .input-help {
   width: 100%;
+
   max-width: 900px;
 
-  margin: 7px auto 0;
+  margin:
+    7px
+    auto
+    0;
 
-  padding: 0 5px;
+  padding:
+    0
+    5px;
 
   color: #9ca3af;
 
@@ -847,14 +1104,16 @@ button:disabled {
    TABLET
 ========================================================= */
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .sidebar {
     width: 260px;
     min-width: 260px;
   }
 
   .chat-header {
-    padding: 12px 18px;
+    padding:
+      12px
+      18px;
   }
 
   .messages {
@@ -868,7 +1127,8 @@ button:disabled {
   }
 
   .examples {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns:
+      repeat(2, 1fr);
   }
 
   .message {
@@ -887,11 +1147,15 @@ button:disabled {
 
   .chat-app {
     position: relative;
+
+    width: 100%;
+
+    height: 100dvh;
   }
 
-  /* ---------------------------------------------
+  /* -----------------------------------------
      SIDEBAR DRAWER
-  --------------------------------------------- */
+  ----------------------------------------- */
 
   .sidebar {
     position: fixed;
@@ -899,41 +1163,96 @@ button:disabled {
     top: 0;
     left: 0;
 
-    width: 290px;
-    min-width: 290px;
+    width:
+      min(300px, 88vw);
 
-    transform: translateX(-100%);
+    min-width:
+      min(300px, 88vw);
+
+    height: 100dvh;
+
+    transform:
+      translateX(-105%);
 
     box-shadow:
-      8px 0 30px rgba(0, 0, 0, 0.12);
+      8px 0 30px
+      rgba(0, 0, 0, 0.14);
 
     transition:
-      transform 0.25s ease;
+      transform 0.25s
+      ease;
+
+    z-index: 1000;
   }
 
-  /*
-    To open sidebar on mobile, add class:
-    .sidebar.mobile-open
-  */
-
-  .sidebar.mobile-open {
-    transform: translateX(0);
+  .sidebar.sidebar-open {
+    transform:
+      translateX(0);
   }
 
-  /* ---------------------------------------------
+  .sidebar-close {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* -----------------------------------------
+     OVERLAY
+  ----------------------------------------- */
+
+  .sidebar-overlay {
+    display: block;
+
+    position: fixed;
+
+    inset: 0;
+
+    background:
+      rgba(15, 23, 42, 0.42);
+
+    backdrop-filter:
+      blur(1px);
+
+    z-index: 999;
+  }
+
+  /* -----------------------------------------
      CHAT
-  --------------------------------------------- */
+  ----------------------------------------- */
 
   .chat-section {
     width: 100%;
+
+    min-width: 0;
   }
+
+  /* -----------------------------------------
+     HEADER
+  ----------------------------------------- */
 
   .chat-header {
     min-height: 64px;
 
     padding:
-      10px
-      12px;
+      9px
+      10px;
+
+    gap: 8px;
+  }
+
+  .menu-button {
+    display: flex;
+  }
+
+  .header-left {
+    min-width: 0;
+
+    flex: 1;
+  }
+
+  .header-agent {
+    min-width: 0;
 
     gap: 8px;
   }
@@ -947,52 +1266,71 @@ button:disabled {
     font-size: 19px;
   }
 
-  .header-agent {
-    gap: 9px;
-  }
-
   .header-agent h1 {
     font-size: 14px;
+
+    max-width:
+      calc(100vw - 120px);
   }
 
   .header-agent p {
-    font-size: 10px;
+    font-size: 9.5px;
+
+    max-width:
+      calc(100vw - 120px);
   }
 
   .conversation-id {
     display: none;
   }
 
-  /* ---------------------------------------------
+  /* -----------------------------------------
+     ERROR
+  ----------------------------------------- */
+
+  .error-banner {
+    margin:
+      8px
+      10px;
+
+    padding:
+      9px
+      11px;
+
+    font-size: 12px;
+  }
+
+  /* -----------------------------------------
      MESSAGES
-  --------------------------------------------- */
+  ----------------------------------------- */
 
   .messages {
     padding:
-      20px
-      12px
-      30px;
+      18px
+      10px
+      25px;
   }
 
   .message-row {
-    gap: 8px;
+    gap: 7px;
 
-    margin-bottom: 15px;
+    margin-bottom: 14px;
   }
 
   .avatar {
     width: 30px;
     height: 30px;
 
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .message {
-    max-width: calc(100% - 40px);
+    max-width:
+      calc(100% - 37px);
 
     padding:
       9px
-      12px;
+      11px;
 
     border-radius: 13px;
 
@@ -1001,14 +1339,16 @@ button:disabled {
     line-height: 1.55;
   }
 
-  /* ---------------------------------------------
+  /* -----------------------------------------
      WELCOME
-  --------------------------------------------- */
+  ----------------------------------------- */
 
   .welcome {
-    margin: 25px auto;
+    margin:
+      25px
+      auto;
 
-    padding: 8px;
+    padding: 5px;
   }
 
   .welcome-icon {
@@ -1027,46 +1367,46 @@ button:disabled {
   }
 
   .welcome p {
-    margin-top: 8px;
+    margin:
+      8px
+      auto
+      20px;
 
     font-size: 12px;
+
+    line-height: 1.6;
   }
 
   .examples {
     grid-template-columns: 1fr;
 
     gap: 8px;
+
+    width: 100%;
   }
 
   .examples button {
     min-height: 44px;
 
     font-size: 12px;
+
+    padding:
+      9px
+      11px;
   }
 
-  /* ---------------------------------------------
-     ERROR
-  --------------------------------------------- */
-
-  .error-banner {
-    margin:
-      8px
-      12px;
-
-    padding: 9px 11px;
-
-    font-size: 12px;
-  }
-
-  /* ---------------------------------------------
+  /* -----------------------------------------
      INPUT
-  --------------------------------------------- */
+  ----------------------------------------- */
 
   .input-area {
     padding:
       8px
       10px
-      calc(10px + env(safe-area-inset-bottom));
+      calc(
+        10px +
+        env(safe-area-inset-bottom)
+      );
   }
 
   .input-box {
@@ -1084,7 +1424,11 @@ button:disabled {
   .input-box textarea {
     font-size: 13px;
 
-    padding: 7px 0;
+    padding:
+      7px
+      0;
+
+    max-height: 120px;
   }
 
   .input-box button {
@@ -1106,17 +1450,49 @@ button:disabled {
 ========================================================= */
 
 @media (max-width: 400px) {
+  .chat-header {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .menu-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .header-icon {
+    width: 34px;
+    height: 34px;
+
+    font-size: 17px;
+  }
+
+  .header-agent {
+    gap: 6px;
+  }
+
   .header-agent h1 {
-    max-width: 220px;
+    font-size: 12.5px;
+
+    max-width:
+      calc(100vw - 105px);
+  }
+
+  .header-agent p {
+    font-size: 8.5px;
+
+    max-width:
+      calc(100vw - 105px);
   }
 
   .messages {
-    padding-left: 9px;
-    padding-right: 9px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 
   .message {
-    max-width: calc(100% - 36px);
+    max-width:
+      calc(100% - 35px);
 
     font-size: 12.5px;
   }
@@ -1124,6 +1500,8 @@ button:disabled {
   .avatar {
     width: 28px;
     height: 28px;
+
+    font-size: 11px;
   }
 
   .welcome h2 {
@@ -1132,6 +1510,59 @@ button:disabled {
 
   .welcome p {
     font-size: 11.5px;
+  }
+
+  .examples button {
+    min-height: 42px;
+
+    font-size: 11.5px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL DEVICES
+========================================================= */
+
+@media (max-width: 340px) {
+  .brand h2 {
+    font-size: 14px;
+  }
+
+  .brand span {
+    font-size: 10px;
+  }
+
+  .sidebar {
+    width: 86vw;
+    min-width: 86vw;
+  }
+
+  .header-agent p {
+    display: none;
+  }
+
+  .header-agent h1 {
+    max-width:
+      calc(100vw - 95px);
+  }
+
+  .welcome {
+    margin-top: 18px;
+  }
+
+  .welcome-icon {
+    width: 52px;
+    height: 52px;
+
+    font-size: 24px;
+  }
+
+  .welcome h2 {
+    font-size: 18px;
+  }
+
+  .welcome p {
+    font-size: 11px;
   }
 }
 
@@ -1153,5 +1584,59 @@ button:disabled {
 
   .message {
     max-width: 760px;
+  }
+}
+
+/* =========================================================
+   LANDSCAPE MOBILE
+========================================================= */
+
+@media (
+  max-width: 700px
+) and (
+  orientation: landscape
+) {
+  .chat-header {
+    min-height: 56px;
+  }
+
+  .header-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .messages {
+    padding-top: 12px;
+    padding-bottom: 15px;
+  }
+
+  .welcome {
+    margin-top: 10px;
+  }
+
+  .welcome-icon {
+    width: 48px;
+    height: 48px;
+
+    font-size: 22px;
+
+    margin-bottom: 8px;
+  }
+
+  .welcome h2 {
+    font-size: 18px;
+  }
+
+  .welcome p {
+    margin-bottom: 12px;
+  }
+
+  .examples {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .examples button {
+    min-height: 38px;
   }
 }

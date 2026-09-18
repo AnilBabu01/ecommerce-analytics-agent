@@ -27,51 +27,31 @@ type Conversation = {
 
 type Round = {
   id?: string;
-
   input?: {
     message?: string;
     attachments?: unknown[];
   };
-
   response?: {
     message?: string;
   };
-
   started_at?: string;
-
   status?: string;
 };
 
 type ConversationDetail = {
   id?: string;
-
   conversation_id?: string;
-
   agent_id?: string;
-
   title?: string;
-
   name?: string;
-
   created_at?: string;
-
   updated_at?: string;
-
   status?: string;
-
-  /*
-   * API error response
-   */
   error?: string;
-
   rounds?: Round[];
-
   messages?: unknown[];
-
   history?: unknown[];
-
   results?: unknown[];
-
   conversation?: {
     rounds?: Round[];
     messages?: unknown[];
@@ -80,84 +60,45 @@ type ConversationDetail = {
 };
 
 export default function Home() {
-  const [messages, setMessages] =
-    useState<Message[]>([]);
-
-  const [input, setInput] =
-    useState("");
-
-  const [
-    conversationId,
-    setConversationId,
-  ] = useState<string | null>(null);
-
-  const [
-    conversations,
-    setConversations,
-  ] = useState<Conversation[]>([]);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [
-    loadingHistory,
-    setLoadingHistory,
-  ] = useState(false);
-
-  const [error, setError] =
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [conversationId, setConversationId] =
     useState<string | null>(null);
 
-  const [sidebarOpen, setSidebarOpen] =
+  const [conversations, setConversations] =
+    useState<Conversation[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] =
     useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const messagesEndRef =
     useRef<HTMLDivElement | null>(null);
-
-  /*
-   * =======================================================
-   * LOAD CONVERSATIONS
-   * =======================================================
-   */
 
   useEffect(() => {
     void loadConversations();
   }, []);
 
-  /*
-   * =======================================================
-   * AUTO SCROLL
-   * =======================================================
-   */
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
-  }, [
-    messages,
-    loading,
-    loadingHistory,
-  ]);
-
-  /*
-   * =======================================================
-   * LOAD SIDEBAR
-   * =======================================================
-   */
+  }, [messages, loading, loadingHistory]);
 
   async function loadConversations() {
     try {
-      const response =
-        await fetch(
-          "/api/conversations",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+      const response = await fetch(
+        "/api/conversations",
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -171,26 +112,18 @@ export default function Home() {
       if (Array.isArray(data)) {
         list = data;
       } else if (
-        Array.isArray(
-          data?.conversations
-        )
+        Array.isArray(data?.conversations)
       ) {
-        list =
-          data.conversations;
+        list = data.conversations;
       } else if (
-        Array.isArray(
-          data?.results
-        )
+        Array.isArray(data?.results)
       ) {
         list = data.results;
       }
 
       setConversations(list);
     } catch (err) {
-      console.error(
-        "Sidebar error:",
-        err
-      );
+      console.error("Sidebar error:", err);
 
       setConversations([]);
 
@@ -202,15 +135,8 @@ export default function Home() {
     }
   }
 
-  /*
-   * =======================================================
-   * SEND MESSAGE
-   * =======================================================
-   */
-
   async function sendMessage() {
-    const text =
-      input.trim();
+    const text = input.trim();
 
     if (
       !text ||
@@ -221,22 +147,15 @@ export default function Home() {
     }
 
     setInput("");
-
     setError(null);
 
-    /*
-     * Add user message immediately
-     */
-
-    setMessages(
-      (previous) => [
-        ...previous,
-        {
-          role: "user",
-          content: text,
-        },
-      ]
-    );
+    setMessages((previous) => [
+      ...previous,
+      {
+        role: "user",
+        content: text,
+      },
+    ]);
 
     setLoading(true);
 
@@ -248,34 +167,24 @@ export default function Home() {
         input: text,
       };
 
-      /*
-       * Existing conversation
-       */
-
       if (conversationId) {
         body.conversation_id =
           conversationId;
       }
 
-      const response =
-        await fetch(
-          "/api/chat",
-          {
-            method: "POST",
+      const response = await fetch(
+        "/api/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body: JSON.stringify(
-              body
-            ),
-          }
-        );
-
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -285,45 +194,25 @@ export default function Home() {
         );
       }
 
-      /*
-       * Get conversation ID
-       */
-
       const newId =
-        getConversationIdFromResponse(
-          data
-        );
+        getConversationIdFromResponse(data);
 
       if (newId) {
-        setConversationId(
-          newId
-        );
+        setConversationId(newId);
       }
-
-      /*
-       * Get assistant response
-       */
 
       const answer =
-        extractAssistantResponse(
-          data
-        );
+        extractAssistantResponse(data);
 
       if (answer.trim()) {
-        setMessages(
-          (previous) => [
-            ...previous,
-            {
-              role: "assistant",
-              content: answer,
-            },
-          ]
-        );
+        setMessages((previous) => [
+          ...previous,
+          {
+            role: "assistant",
+            content: answer,
+          },
+        ]);
       }
-
-      /*
-       * Update sidebar
-       */
 
       await loadConversations();
     } catch (err) {
@@ -339,26 +228,17 @@ export default function Home() {
 
       setError(message);
 
-      setMessages(
-        (previous) => [
-          ...previous,
-          {
-            role: "assistant",
-            content:
-              `Error: ${message}`,
-          },
-        ]
-      );
+      setMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          content: `Error: ${message}`,
+        },
+      ]);
     } finally {
       setLoading(false);
     }
   }
-
-  /*
-   * =======================================================
-   * RESPONSE CONVERSATION ID
-   * =======================================================
-   */
 
   function getConversationIdFromResponse(
     data: any
@@ -378,8 +258,7 @@ export default function Home() {
     }
 
     if (
-      typeof data?.id ===
-      "string"
+      typeof data?.id === "string"
     ) {
       return data.id;
     }
@@ -393,12 +272,6 @@ export default function Home() {
 
     return null;
   }
-
-  /*
-   * =======================================================
-   * ASSISTANT RESPONSE
-   * =======================================================
-   */
 
   function extractAssistantResponse(
     data: any
@@ -466,21 +339,12 @@ export default function Home() {
     return "";
   }
 
-  /*
-   * =======================================================
-   * ARRAY TEXT
-   * =======================================================
-   */
-
   function extractArrayText(
     array: any[]
   ): string {
     return array
       .map((item) => {
-        if (
-          typeof item ===
-          "string"
-        ) {
+        if (typeof item === "string") {
           return item;
         }
 
@@ -493,50 +357,38 @@ export default function Home() {
       })
       .filter(
         (item) =>
-          typeof item ===
-            "string" &&
+          typeof item === "string" &&
           item.trim()
       )
       .join("\n\n");
   }
 
-  /*
-   * =======================================================
-   * OPEN CONVERSATION
-   * =======================================================
-   */
-
   async function openConversation(
     id: string
   ) {
-    if (
-      !id ||
-      loadingHistory
-    ) {
+    if (!id || loadingHistory) {
       return;
     }
 
     setConversationId(id);
-
     setMessages([]);
-
     setError(null);
 
+    // Close mobile drawer
     setSidebarOpen(false);
 
     setLoadingHistory(true);
 
     try {
-      const response =
-        await fetch(
-          `/api/conversations/${encodeURIComponent(
-            id
-          )}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
+      const response = await fetch(
+        `/api/conversations/${encodeURIComponent(
+          id
+        )}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
 
       const data: ConversationDetail =
         await response.json();
@@ -548,17 +400,8 @@ export default function Home() {
         );
       }
 
-      /*
-       * Reads:
-       *
-       * rounds[].input.message
-       * rounds[].response.message
-       */
-
       const history =
-        extractConversationMessages(
-          data
-        );
+        extractConversationMessages(data);
 
       setMessages(history);
     } catch (err) {
@@ -579,126 +422,57 @@ export default function Home() {
     }
   }
 
-  /*
-   * =======================================================
-   * EXTRACT ELASTIC ROUNDS
-   * =======================================================
-   */
-
   function extractConversationMessages(
     data: ConversationDetail
   ): Message[] {
     const result: Message[] = [];
 
-    /*
-     * PRIMARY FORMAT
-     *
-     * {
-     *   rounds: [
-     *     {
-     *       input: {
-     *         message: "..."
-     *       },
-     *       response: {
-     *         message: "..."
-     *       }
-     *     }
-     *   ]
-     * }
-     */
-
-    if (
-      Array.isArray(data.rounds)
-    ) {
-      for (
-        const round of data.rounds
-      ) {
-        addRound(
-          round,
-          result
-        );
+    if (Array.isArray(data.rounds)) {
+      for (const round of data.rounds) {
+        addRound(round, result);
       }
 
       return result;
     }
 
-    /*
-     * Nested conversation.rounds
-     */
-
     if (
       Array.isArray(
-        data.conversation
-          ?.rounds
+        data.conversation?.rounds
       )
     ) {
       for (
         const round of
-          data.conversation
-            .rounds
+          data.conversation.rounds
       ) {
-        addRound(
-          round,
-          result
-        );
+        addRound(round, result);
       }
 
       return result;
     }
 
-    /*
-     * Generic messages fallback
-     */
-
-    if (
-      Array.isArray(
-        data.messages
-      )
-    ) {
+    if (Array.isArray(data.messages)) {
       return normalizeMessages(
         data.messages
       );
     }
 
-    /*
-     * History fallback
-     */
-
-    if (
-      Array.isArray(
-        data.history
-      )
-    ) {
+    if (Array.isArray(data.history)) {
       return normalizeMessages(
         data.history
       );
     }
 
-    /*
-     * Nested messages
-     */
-
     if (
       Array.isArray(
-        data.conversation
-          ?.messages
+        data.conversation?.messages
       )
     ) {
       return normalizeMessages(
-        data.conversation
-          ?.messages || []
+        data.conversation.messages
       );
     }
 
-    /*
-     * Results fallback
-     */
-
-    if (
-      Array.isArray(
-        data.results
-      )
-    ) {
+    if (Array.isArray(data.results)) {
       return normalizeMessages(
         data.results
       );
@@ -707,60 +481,36 @@ export default function Home() {
     return result;
   }
 
-  /*
-   * =======================================================
-   * ADD ELASTIC ROUND
-   * =======================================================
-   */
-
   function addRound(
     round: Round,
     result: Message[]
   ) {
-    /*
-     * USER
-     */
-
     const user =
       round.input?.message;
 
     if (
-      typeof user ===
-        "string" &&
+      typeof user === "string" &&
       user.trim()
     ) {
       result.push({
         role: "user",
-        content:
-          user.trim(),
+        content: user.trim(),
       });
     }
-
-    /*
-     * ASSISTANT
-     */
 
     const assistant =
       round.response?.message;
 
     if (
-      typeof assistant ===
-        "string" &&
+      typeof assistant === "string" &&
       assistant.trim()
     ) {
       result.push({
         role: "assistant",
-        content:
-          assistant.trim(),
+        content: assistant.trim(),
       });
     }
   }
-
-  /*
-   * =======================================================
-   * NORMALIZE FALLBACK MESSAGES
-   * =======================================================
-   */
 
   function normalizeMessages(
     source: any[]
@@ -769,8 +519,7 @@ export default function Home() {
       .map(
         (item): Message | null => {
           if (
-            typeof item ===
-            "string"
+            typeof item === "string"
           ) {
             return {
               role: "assistant",
@@ -790,21 +539,16 @@ export default function Home() {
               ? item.message
               : "";
 
-          if (
-            !content.trim()
-          ) {
+          if (!content.trim()) {
             return null;
           }
 
           return {
             role:
-              item?.role ===
-              "user"
+              item?.role === "user"
                 ? "user"
                 : "assistant",
-
-            content:
-              content.trim(),
+            content: content.trim(),
           };
         }
       )
@@ -816,29 +560,13 @@ export default function Home() {
       );
   }
 
-  /*
-   * =======================================================
-   * NEW CHAT
-   * =======================================================
-   */
-
   function newChat() {
     setConversationId(null);
-
     setMessages([]);
-
     setInput("");
-
     setError(null);
-
     setSidebarOpen(false);
   }
-
-  /*
-   * =======================================================
-   * ENTER SEND
-   * =======================================================
-   */
 
   function handleKeyDown(
     event: KeyboardEvent<HTMLTextAreaElement>
@@ -848,16 +576,9 @@ export default function Home() {
       !event.shiftKey
     ) {
       event.preventDefault();
-
       void sendMessage();
     }
   }
-
-  /*
-   * =======================================================
-   * TITLE
-   * =======================================================
-   */
 
   function getTitle(
     conversation: Conversation,
@@ -870,12 +591,6 @@ export default function Home() {
     );
   }
 
-  /*
-   * =======================================================
-   * ID
-   * =======================================================
-   */
-
   function getId(
     conversation: Conversation
   ) {
@@ -886,26 +601,13 @@ export default function Home() {
     );
   }
 
-  /*
-   * =======================================================
-   * DATE
-   * =======================================================
-   */
+  function formatDate(date?: string) {
+    if (!date) return "";
 
-  function formatDate(
-    date?: string
-  ) {
-    if (!date) {
-      return "";
-    }
-
-    const value =
-      new Date(date);
+    const value = new Date(date);
 
     if (
-      Number.isNaN(
-        value.getTime()
-      )
+      Number.isNaN(value.getTime())
     ) {
       return "";
     }
@@ -919,12 +621,6 @@ export default function Home() {
     );
   }
 
-  /*
-   * =======================================================
-   * UI
-   * =======================================================
-   */
-
   return (
     <main className="chat-app">
 
@@ -936,12 +632,11 @@ export default function Home() {
           onClick={() =>
             setSidebarOpen(false)
           }
+          aria-hidden="true"
         />
       )}
 
-      {/* =================================================
-          SIDEBAR
-      ================================================= */}
+      {/* SIDEBAR */}
 
       <aside
         className={`sidebar ${
@@ -950,7 +645,6 @@ export default function Home() {
             : ""
         }`}
       >
-
         <div className="sidebar-header">
 
           <div className="brand">
@@ -959,7 +653,7 @@ export default function Home() {
               🛒
             </div>
 
-            <div>
+            <div className="brand-text">
               <h2>
                 Ecommerce Agent
               </h2>
@@ -969,6 +663,19 @@ export default function Home() {
               </span>
             </div>
 
+            {/* Mobile close */}
+
+            <button
+              type="button"
+              className="sidebar-close"
+              onClick={() =>
+                setSidebarOpen(false)
+              }
+              aria-label="Close sidebar"
+            >
+              ×
+            </button>
+
           </div>
 
           <button
@@ -976,7 +683,8 @@ export default function Home() {
             type="button"
             onClick={newChat}
           >
-            + New Chat
+            <span>＋</span>
+            New Chat
           </button>
 
         </div>
@@ -1000,13 +708,9 @@ export default function Home() {
               index
             ) => {
               const id =
-                getId(
-                  conversation
-                );
+                getId(conversation);
 
-              if (!id) {
-                return null;
-              }
+              if (!id) return null;
 
               const title =
                 getTitle(
@@ -1036,13 +740,11 @@ export default function Home() {
                     loadingHistory
                   }
                 >
-
                   <span className="conversation-icon">
                     💬
                   </span>
 
                   <span className="conversation-content">
-
                     <span className="conversation-text">
                       {title}
                     </span>
@@ -1054,42 +756,57 @@ export default function Home() {
                         )}
                       </span>
                     )}
-
                   </span>
-
                 </button>
               );
             }
           )}
-
         </div>
-
       </aside>
 
-      {/* =================================================
-          CHAT
-      ================================================= */}
+      {/* CHAT */}
 
       <section className="chat-section">
 
         {/* HEADER */}
 
         <header className="chat-header">
-             <div className="header-agent">
 
-            <div className="header-icon">
-              🛒
-            </div>
+          <div className="header-left">
 
-            <div>
+            {/* MOBILE MENU */}
 
-              <h1>
-                Ecommerce Analytics Agent
-              </h1>
+            <button
+              type="button"
+              className="menu-button"
+              onClick={() =>
+                setSidebarOpen(true)
+              }
+              aria-label="Open conversations"
+              aria-expanded={sidebarOpen}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
 
-              <p>
-                Powered by 8bit system private limited
-              </p>
+            <div className="header-agent">
+
+              <div className="header-icon">
+                🛒
+              </div>
+
+              <div className="header-agent-info">
+
+                <h1>
+                  Ecommerce Analytics Agent
+                </h1>
+
+                <p>
+                  Powered by 8bit System Private Limited
+                </p>
+
+              </div>
 
             </div>
 
@@ -1108,15 +825,14 @@ export default function Home() {
         {error && (
           <div className="error-banner">
 
-            <span>
-              {error}
-            </span>
+            <span>{error}</span>
 
             <button
               type="button"
               onClick={() =>
                 setError(null)
               }
+              aria-label="Close error"
             >
               ×
             </button>
@@ -1124,16 +840,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* =================================================
-            MESSAGES
-        ================================================= */}
+        {/* MESSAGES */}
 
         <div className="messages">
 
           {/* WELCOME */}
 
-          {messages.length ===
-            0 &&
+          {messages.length === 0 &&
             !loadingHistory && (
               <div className="welcome">
 
@@ -1155,6 +868,7 @@ export default function Home() {
                 <div className="examples">
 
                   <button
+                    type="button"
                     onClick={() =>
                       setInput(
                         "Show me total sales"
@@ -1165,6 +879,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() =>
                       setInput(
                         "Show me the top selling products"
@@ -1175,6 +890,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() =>
                       setInput(
                         "Show me the number of orders"
@@ -1185,6 +901,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() =>
                       setInput(
                         "Show me sales by country"
@@ -1195,6 +912,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() =>
                       setInput(
                         "Which products have the highest revenue?"
@@ -1205,6 +923,7 @@ export default function Home() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() =>
                       setInput(
                         "Analyze ecommerce sales performance"
@@ -1242,27 +961,23 @@ export default function Home() {
                 index
               ) => (
                 <div
-                  key={`${conversationId}-${index}`}
+                  key={`${conversationId ?? "new"}-${index}`}
                   className={`message-row ${message.role}`}
                 >
 
                   <div className="avatar">
-
                     {message.role ===
                     "user"
                       ? "U"
                       : "🛒"}
-
                   </div>
 
                   <div className="message">
-
                     <MessageContent
                       content={
                         message.content
                       }
                     />
-
                   </div>
 
                 </div>
@@ -1289,15 +1004,11 @@ export default function Home() {
             </div>
           )}
 
-          <div
-            ref={messagesEndRef}
-          />
+          <div ref={messagesEndRef} />
 
         </div>
 
-        {/* =================================================
-            INPUT
-        ================================================= */}
+        {/* INPUT */}
 
         <div className="input-area">
 
@@ -1310,9 +1021,7 @@ export default function Home() {
                   event.target.value
                 )
               }
-              onKeyDown={
-                handleKeyDown
-              }
+              onKeyDown={handleKeyDown}
               placeholder="Ask your Ecommerce Agent..."
               rows={1}
               disabled={
@@ -1331,6 +1040,7 @@ export default function Home() {
                 loadingHistory ||
                 !input.trim()
               }
+              aria-label="Send message"
             >
               ↑
             </button>
@@ -1338,8 +1048,8 @@ export default function Home() {
           </div>
 
           <div className="input-help">
-            Enter to send · Shift +
-            Enter for new line
+            Enter to send · Shift + Enter
+            for new line
           </div>
 
         </div>
@@ -1358,13 +1068,6 @@ function MessageContent({
 }: {
   content: string;
 }) {
-  /*
-   * Keep normal text readable.
-   *
-   * The CSS white-space setting also preserves
-   * Markdown tables and line breaks.
-   */
-
   return (
     <div className="message-content">
       {content}
