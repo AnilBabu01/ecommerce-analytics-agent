@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+
+type Role =
+  | "user"
+  | "assistant";
 
 type Message = {
-  role: "user" | "assistant";
+  role: Role;
   content: string;
 };
 
@@ -18,122 +27,222 @@ type Conversation = {
   status?: string;
 };
 
+type Round = {
+  id?: string;
+
+  input?: {
+    message?: string;
+    attachments?: unknown[];
+  };
+
+  response?: {
+    message?: string;
+  };
+
+  started_at?: string;
+
+  status?: string;
+};
+
+type ConversationDetail = {
+  id?: string;
+
+  conversation_id?: string;
+
+  agent_id?: string;
+
+  title?: string;
+
+  name?: string;
+
+  created_at?: string;
+
+  updated_at?: string;
+
+  status?: string;
+
+  rounds?: Round[];
+
+  messages?: unknown[];
+
+  history?: unknown[];
+
+  results?: unknown[];
+
+  conversation?: {
+    rounds?: Round[];
+    messages?: unknown[];
+    history?: unknown[];
+  };
+};
+
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [conversationId, setConversationId] =
-    useState<string | null>(null);
+  const [messages, setMessages] =
+    useState<Message[]>([]);
 
-  const [conversations, setConversations] =
-    useState<Conversation[]>([]);
+  const [input, setInput] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [loadingHistory, setLoadingHistory] =
-    useState(false);
+  const [
+    conversationId,
+    setConversationId,
+  ] = useState<string | null>(null);
 
-  const [error, setError] = useState<string | null>(
-    null
+  const [
+    conversations,
+    setConversations,
+  ] = useState<Conversation[]>(
+    []
   );
 
-  // =========================================================
-  // LOAD CONVERSATIONS WHEN PAGE OPENS
-  // =========================================================
+  const [loading, setLoading] =
+    useState(false);
+
+  const [
+    loadingHistory,
+    setLoadingHistory,
+  ] = useState(false);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+  const [sidebarOpen, setSidebarOpen] =
+    useState(false);
+
+  const messagesEndRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+  /*
+   * =======================================================
+   * LOAD CONVERSATIONS
+   * =======================================================
+   */
 
   useEffect(() => {
-    loadConversations();
+    void loadConversations();
   }, []);
 
-  // =========================================================
-  // GET ALL CONVERSATIONS
-  // =========================================================
+  /*
+   * =======================================================
+   * AUTO SCROLL
+   * =======================================================
+   */
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView(
+      {
+        behavior: "smooth",
+      }
+    );
+  }, [
+    messages,
+    loading,
+    loadingHistory,
+  ]);
+
+  /*
+   * =======================================================
+   * LOAD SIDEBAR
+   * =======================================================
+   */
 
   async function loadConversations() {
     try {
-      const response = await fetch(
-        "/api/conversations",
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
+      const response =
+        await fetch(
+          "/api/conversations",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
-      const data = await response.json();
-
-      console.log(
-        "Conversations response:",
-        data
-      );
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           data?.error ||
-            "Failed to load conversations"
+            "Failed to load conversations."
         );
       }
 
-      /*
-       * Your API can return:
-       *
-       * {
-       *   conversations: [...]
-       * }
-       *
-       * OR Elastic directly:
-       *
-       * {
-       *   results: [...]
-       * }
-       *
-       * OR an array.
-       */
+      let list: Conversation[] =
+        [];
 
-      if (Array.isArray(data)) {
-        setConversations(data);
-      } else if (
-        Array.isArray(data.conversations)
+      if (
+        Array.isArray(data)
       ) {
-        setConversations(data.conversations);
+        list = data;
       } else if (
-        Array.isArray(data.results)
+        Array.isArray(
+          data?.conversations
+        )
       ) {
-        setConversations(data.results);
-      } else {
-        setConversations([]);
+        list =
+          data.conversations;
+      } else if (
+        Array.isArray(
+          data?.results
+        )
+      ) {
+        list = data.results;
       }
-    } catch (error) {
+
+      setConversations(list);
+    } catch (err) {
       console.error(
-        "Failed to load conversations:",
-        error
+        "Sidebar error:",
+        err
       );
 
       setConversations([]);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load conversations."
+      );
     }
   }
 
-  // =========================================================
-  // SEND MESSAGE
-  // =========================================================
+  /*
+   * =======================================================
+   * SEND MESSAGE
+   * =======================================================
+   */
 
   async function sendMessage() {
-    const message = input.trim();
+    const text =
+      input.trim();
 
-    if (!message || loading) {
+    if (
+      !text ||
+      loading ||
+      loadingHistory
+    ) {
       return;
     }
 
     setInput("");
+
     setError(null);
 
-    // Add user message immediately
-    const userMessage: Message = {
-      role: "user",
-      content: message,
-    };
+    /*
+     * Add user message immediately
+     */
 
-    setMessages((previous) => [
-      ...previous,
-      userMessage,
-    ]);
+    setMessages(
+      (previous) => [
+        ...previous,
+        {
+          role: "user",
+          content: text,
+        },
+      ]
+    );
 
     setLoading(true);
 
@@ -142,143 +251,192 @@ export default function Home() {
         input: string;
         conversation_id?: string;
       } = {
-        input: message,
+        input: text,
       };
 
-      // Continue existing conversation
+      /*
+       * Existing conversation
+       */
+
       if (conversationId) {
         body.conversation_id =
           conversationId;
       }
 
-      console.log(
-        "Sending chat request:",
-        body
-      );
+      const response =
+        await fetch(
+          "/api/chat",
+          {
+            method: "POST",
 
-      const response = await fetch(
-        "/api/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        }
-      );
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-      const data = await response.json();
+            body: JSON.stringify(
+              body
+            ),
+          }
+        );
 
-      console.log(
-        "Elastic chat response:",
-        data
-      );
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           data?.error ||
             data?.details?.message ||
-            "Elastic Agent request failed"
+            "Elastic Agent request failed."
         );
       }
 
-      // =====================================================
-      // GET CONVERSATION ID
-      // =====================================================
+      /*
+       * Get conversation ID
+       */
 
-      const newConversationId =
-        data.conversation_id ||
-        data.conversationId ||
-        data.conversation?.id ||
-        data.id ||
-        conversationId;
+      const newId =
+        getConversationIdFromResponse(
+          data
+        );
 
-      if (newConversationId) {
+      if (newId) {
         setConversationId(
-          newConversationId
+          newId
         );
       }
 
-      // =====================================================
-      // GET ASSISTANT RESPONSE
-      // =====================================================
+      /*
+       * Get assistant response
+       */
 
       const answer =
-        extractAssistantResponse(data);
+        extractAssistantResponse(
+          data
+        );
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: answer,
-      };
+      if (answer.trim()) {
+        setMessages(
+          (previous) => [
+            ...previous,
+            {
+              role: "assistant",
+              content: answer,
+            },
+          ]
+        );
+      }
 
-      setMessages((previous) => [
-        ...previous,
-        assistantMessage,
-      ]);
+      /*
+       * Update sidebar
+       */
 
-      // Refresh sidebar
       await loadConversations();
-    } catch (error) {
+    } catch (err) {
       console.error(
-        "Chat error:",
-        error
+        "Send message error:",
+        err
       );
 
-      const errorMessage =
-        error instanceof Error
-          ? error.message
+      const message =
+        err instanceof Error
+          ? err.message
           : "Something went wrong.";
 
-      setError(errorMessage);
+      setError(message);
 
-      setMessages((previous) => [
-        ...previous,
-        {
-          role: "assistant",
-          content: `Error: ${errorMessage}`,
-        },
-      ]);
+      setMessages(
+        (previous) => [
+          ...previous,
+          {
+            role: "assistant",
+            content:
+              `Error: ${message}`,
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  // =========================================================
-  // EXTRACT ASSISTANT RESPONSE
-  // =========================================================
+  /*
+   * =======================================================
+   * RESPONSE CONVERSATION ID
+   * =======================================================
+   */
+
+  function getConversationIdFromResponse(
+    data: any
+  ): string | null {
+    if (
+      typeof data?.conversation_id ===
+      "string"
+    ) {
+      return data.conversation_id;
+    }
+
+    if (
+      typeof data?.conversationId ===
+      "string"
+    ) {
+      return data.conversationId;
+    }
+
+    if (
+      typeof data?.id ===
+      "string"
+    ) {
+      return data.id;
+    }
+
+    if (
+      typeof data?.conversation?.id ===
+      "string"
+    ) {
+      return data.conversation.id;
+    }
+
+    return null;
+  }
+
+  /*
+   * =======================================================
+   * ASSISTANT RESPONSE
+   * =======================================================
+   */
 
   function extractAssistantResponse(
     data: any
   ): string {
-    // Simple response
     if (
-      typeof data?.response === "string"
+      typeof data?.response ===
+      "string"
     ) {
       return data.response;
     }
 
-    // Simple message
     if (
-      typeof data?.message === "string"
+      typeof data?.message ===
+      "string"
     ) {
       return data.message;
     }
 
-    // Output
     if (
-      typeof data?.output === "string"
+      typeof data?.output ===
+      "string"
     ) {
       return data.output;
     }
 
-    // Text
     if (
-      typeof data?.text === "string"
+      typeof data?.text ===
+      "string"
     ) {
       return data.text;
     }
 
-    // response.message
     if (
       typeof data?.response?.message ===
       "string"
@@ -286,7 +444,6 @@ export default function Home() {
       return data.response.message;
     }
 
-    // response.text
     if (
       typeof data?.response?.text ===
       "string"
@@ -294,206 +451,401 @@ export default function Home() {
       return data.response.text;
     }
 
-    // response.messages
     if (
       Array.isArray(
         data?.response?.messages
       )
     ) {
-      return data.response.messages
-        .map((message: any) => {
-          if (
-            typeof message === "string"
-          ) {
-            return message;
-          }
-
-          return (
-            message?.content ||
-            message?.text ||
-            message?.message ||
-            ""
-          );
-        })
-        .filter(
-          (value: unknown): value is string =>
-            typeof value === "string" &&
-            value.trim().length > 0
-        )
-        .join("\n");
+      return extractArrayText(
+        data.response.messages
+      );
     }
 
-    // messages
     if (
       Array.isArray(data?.messages)
     ) {
-      return data.messages
-        .map((message: any) => {
-          if (
-            typeof message === "string"
-          ) {
-            return message;
-          }
-
-          return (
-            message?.content ||
-            message?.text ||
-            message?.message ||
-            ""
-          );
-        })
-        .filter(
-          (value: unknown): value is string =>
-            typeof value === "string" &&
-            value.trim().length > 0
-        )
-        .join("\n");
+      return extractArrayText(
+        data.messages
+      );
     }
 
-    // Last fallback
-    return JSON.stringify(
-      data,
-      null,
-      2
-    );
+    return "";
   }
 
-  // =========================================================
-  // OPEN EXISTING CONVERSATION
-  // =========================================================
+  /*
+   * =======================================================
+   * ARRAY TEXT
+   * =======================================================
+   */
+
+  function extractArrayText(
+    array: any[]
+  ): string {
+    return array
+      .map((item) => {
+        if (
+          typeof item ===
+          "string"
+        ) {
+          return item;
+        }
+
+        return (
+          item?.content ||
+          item?.text ||
+          item?.message ||
+          ""
+        );
+      })
+      .filter(
+        (item) =>
+          typeof item ===
+            "string" &&
+          item.trim()
+      )
+      .join("\n\n");
+  }
+
+  /*
+   * =======================================================
+   * OPEN CONVERSATION
+   * =======================================================
+   */
 
   async function openConversation(
     id: string
   ) {
-    if (!id) {
+    if (
+      !id ||
+      loadingHistory
+    ) {
       return;
     }
 
-    setLoadingHistory(true);
+    setConversationId(id);
+
+    setMessages([]);
+
     setError(null);
 
+    setSidebarOpen(false);
+
+    setLoadingHistory(true);
+
     try {
-      const response = await fetch(
-        `/api/conversations/${encodeURIComponent(
-          id
-        )}`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
+      const response =
+        await fetch(
+          `/api/conversations/${encodeURIComponent(
+            id
+          )}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
 
-      const data = await response.json();
-
-      console.log(
-        "Conversation detail:",
-        data
-      );
+      const data: ConversationDetail =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
           data?.error ||
-            "Unable to load conversation"
+            "Unable to load conversation."
         );
       }
 
-      // Set selected conversation
-      setConversationId(id);
+      /*
+       * THIS reads:
+       *
+       * rounds[].input.message
+       * rounds[].response.message
+       */
 
-      // Extract history
       const history =
-        extractMessages(data);
+        extractConversationMessages(
+          data
+        );
 
       setMessages(history);
-    } catch (error) {
+    } catch (err) {
       console.error(
-        "Conversation loading error:",
-        error
+        "Open conversation error:",
+        err
       );
 
       setError(
-        error instanceof Error
-          ? error.message
+        err instanceof Error
+          ? err.message
           : "Unable to load conversation."
       );
+
+      setMessages([]);
     } finally {
       setLoadingHistory(false);
     }
   }
 
-  // =========================================================
-  // EXTRACT CONVERSATION MESSAGES
-  // =========================================================
+  /*
+   * =======================================================
+   * EXTRACT ELASTIC ROUNDS
+   * =======================================================
+   */
 
-  function extractMessages(
-    data: any
+  function extractConversationMessages(
+    data: ConversationDetail
   ): Message[] {
-    const source =
-      data?.messages ||
-      data?.conversation?.messages ||
-      data?.history ||
-      data?.results ||
+    const result: Message[] =
       [];
 
-    if (!Array.isArray(source)) {
-      return [];
+    /*
+     * PRIMARY FORMAT
+     *
+     * {
+     *   rounds: [
+     *     {
+     *       input: {
+     *         message: "..."
+     *       },
+     *       response: {
+     *         message: "..."
+     *       }
+     *     }
+     *   ]
+     * }
+     */
+
+    if (
+      Array.isArray(data.rounds)
+    ) {
+      for (const round of
+        data.rounds) {
+        addRound(
+          round,
+          result
+        );
+      }
+
+      return result;
     }
 
-    const messages: Message[] = source
+    /*
+     * Nested conversation.rounds
+     */
+
+    if (
+      Array.isArray(
+        data.conversation
+          ?.rounds
+      )
+    ) {
+      for (const round of
+        data.conversation!
+          .rounds!) {
+        addRound(
+          round,
+          result
+        );
+      }
+
+      return result;
+    }
+
+    /*
+     * Generic messages fallback
+     */
+
+    if (
+      Array.isArray(
+        data.messages
+      )
+    ) {
+      return normalizeMessages(
+        data.messages
+      );
+    }
+
+    /*
+     * History fallback
+     */
+
+    if (
+      Array.isArray(
+        data.history
+      )
+    ) {
+      return normalizeMessages(
+        data.history
+      );
+    }
+
+    /*
+     * Nested messages
+     */
+
+    if (
+      Array.isArray(
+        data.conversation
+          ?.messages
+      )
+    ) {
+      return normalizeMessages(
+        data.conversation
+          ?.messages || []
+      );
+    }
+
+    /*
+     * Results fallback
+     */
+
+    if (
+      Array.isArray(
+        data.results
+      )
+    ) {
+      return normalizeMessages(
+        data.results
+      );
+    }
+
+    return result;
+  }
+
+  /*
+   * =======================================================
+   * ADD ELASTIC ROUND
+   * =======================================================
+   */
+
+  function addRound(
+    round: Round,
+    result: Message[]
+  ) {
+    /*
+     * USER
+     */
+
+    const user =
+      round.input?.message;
+
+    if (
+      typeof user ===
+        "string" &&
+      user.trim()
+    ) {
+      result.push({
+        role: "user",
+        content:
+          user.trim(),
+      });
+    }
+
+    /*
+     * ASSISTANT
+     */
+
+    const assistant =
+      round.response?.message;
+
+    if (
+      typeof assistant ===
+        "string" &&
+      assistant.trim()
+    ) {
+      result.push({
+        role: "assistant",
+        content:
+          assistant.trim(),
+      });
+    }
+  }
+
+  /*
+   * =======================================================
+   * NORMALIZE FALLBACK MESSAGES
+   * =======================================================
+   */
+
+  function normalizeMessages(
+    source: any[]
+  ): Message[] {
+    return source
       .map(
-        (message: any): Message => {
-          const role: "user" | "assistant" =
-            message?.role === "user"
-              ? "user"
-              : "assistant";
+        (item): Message | null => {
+          if (
+            typeof item ===
+            "string"
+          ) {
+            return {
+              role: "assistant",
+              content: item,
+            };
+          }
 
           const content =
-            message?.content ??
-            message?.text ??
-            message?.message ??
-            "";
+            typeof item?.content ===
+            "string"
+              ? item.content
+              : typeof item?.text ===
+                "string"
+              ? item.text
+              : typeof item?.message ===
+                "string"
+              ? item.message
+              : "";
+
+          if (
+            !content.trim()
+          ) {
+            return null;
+          }
 
           return {
-            role,
+            role:
+              item?.role ===
+              "user"
+                ? "user"
+                : "assistant",
+
             content:
-              typeof content === "string"
-                ? content
-                : JSON.stringify(
-                    content
-                  ),
+              content.trim(),
           };
         }
       )
       .filter(
         (
-          message: Message
-        ) =>
-          message.content
-            .trim()
-            .length > 0
+          item
+        ): item is Message =>
+          item !== null
       );
-
-    return messages;
   }
 
-  // =========================================================
-  // NEW CHAT
-  // =========================================================
+  /*
+   * =======================================================
+   * NEW CHAT
+   * =======================================================
+   */
 
   function newChat() {
     setConversationId(null);
+
     setMessages([]);
+
     setInput("");
+
     setError(null);
+
+    setSidebarOpen(false);
   }
 
-  // =========================================================
-  // ENTER TO SEND
-  // SHIFT + ENTER = NEW LINE
-  // =========================================================
+  /*
+   * =======================================================
+   * ENTER SEND
+   * =======================================================
+   */
 
   function handleKeyDown(
-    event: React.KeyboardEvent<HTMLTextAreaElement>
+    event: KeyboardEvent<HTMLTextAreaElement>
   ) {
     if (
       event.key === "Enter" &&
@@ -501,47 +853,107 @@ export default function Home() {
     ) {
       event.preventDefault();
 
-      if (
-        input.trim() &&
-        !loading
-      ) {
-        sendMessage();
-      }
+      void sendMessage();
     }
   }
 
-  // =========================================================
-  // FORMAT DATE
-  // =========================================================
+  /*
+   * =======================================================
+   * TITLE
+   * =======================================================
+   */
+
+  function getTitle(
+    conversation: Conversation,
+    index: number
+  ) {
+    return (
+      conversation.title ||
+      conversation.name ||
+      `Conversation ${index + 1}`
+    );
+  }
+
+  /*
+   * =======================================================
+   * ID
+   * =======================================================
+   */
+
+  function getId(
+    conversation: Conversation
+  ) {
+    return (
+      conversation.id ||
+      conversation.conversation_id ||
+      ""
+    );
+  }
+
+  /*
+   * =======================================================
+   * DATE
+   * =======================================================
+   */
 
   function formatDate(
     date?: string
-  ): string {
+  ) {
     if (!date) {
       return "";
     }
 
-    try {
-      return new Date(
-        date
-      ).toLocaleString();
-    } catch {
+    const value =
+      new Date(date);
+
+    if (
+      Number.isNaN(
+        value.getTime()
+      )
+    ) {
       return "";
     }
+
+    return value.toLocaleString(
+      undefined,
+      {
+        dateStyle: "short",
+        timeStyle: "short",
+      }
+    );
   }
 
-  // =========================================================
-  // UI
-  // =========================================================
+  /*
+   * =======================================================
+   * UI
+   * =======================================================
+   */
 
   return (
     <main className="chat-app">
 
-      {/* ===================================================
-          SIDEBAR
-      ==================================================== */}
+      {/* MOBILE OVERLAY */}
 
-      <aside className="sidebar">
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() =>
+            setSidebarOpen(false)
+          }
+        />
+      )}
+
+      {/* =================================================
+          SIDEBAR
+      ================================================= */}
+
+      <aside
+        className={`sidebar ${
+          sidebarOpen
+            ? "sidebar-open"
+            : ""
+        }`}
+      >
 
         <div className="sidebar-header">
 
@@ -565,6 +977,7 @@ export default function Home() {
 
           <button
             className="new-chat"
+            type="button"
             onClick={newChat}
           >
             + New Chat
@@ -590,36 +1003,36 @@ export default function Home() {
               conversation,
               index
             ) => {
-
               const id =
-                conversation.id ||
-                conversation.conversation_id;
+                getId(
+                  conversation
+                );
 
               if (!id) {
                 return null;
               }
 
               const title =
-                conversation.title ||
-                conversation.name ||
-                `Conversation ${
-                  index + 1
-                }`;
+                getTitle(
+                  conversation,
+                  index
+                );
 
-              const isActive =
+              const active =
                 id ===
                 conversationId;
 
               return (
                 <button
                   key={id}
+                  type="button"
                   className={`conversation ${
-                    isActive
+                    active
                       ? "active"
                       : ""
                   }`}
                   onClick={() =>
-                    openConversation(
+                    void openConversation(
                       id
                     )
                   }
@@ -657,17 +1070,28 @@ export default function Home() {
 
       </aside>
 
-      {/* ===================================================
-          CHAT SECTION
-      ==================================================== */}
+      {/* =================================================
+          CHAT
+      ================================================= */}
 
       <section className="chat-section">
 
-        {/* =================================================
-            HEADER
-        ================================================== */}
+        {/* HEADER */}
 
         <header className="chat-header">
+
+          <button
+            type="button"
+            className="mobile-menu"
+            onClick={() =>
+              setSidebarOpen(
+                true
+              )
+            }
+            aria-label="Open conversations"
+          >
+            ☰
+          </button>
 
           <div className="header-agent">
 
@@ -682,7 +1106,7 @@ export default function Home() {
               </h1>
 
               <p>
-               Powered by 8bit system private limited
+                Powered by 8bit system private limited
               </p>
 
             </div>
@@ -697,33 +1121,34 @@ export default function Home() {
 
         </header>
 
-        {/* =================================================
-            ERROR
-        ================================================== */}
+        {/* ERROR */}
 
         {error && (
           <div className="error-banner">
-            {error}
+
+            <span>
+              {error}
+            </span>
 
             <button
+              type="button"
               onClick={() =>
                 setError(null)
               }
             >
               ×
             </button>
+
           </div>
         )}
 
         {/* =================================================
             MESSAGES
-        ================================================== */}
+        ================================================= */}
 
         <div className="messages">
 
-          {/* =================================================
-              WELCOME SCREEN
-          ================================================== */}
+          {/* WELCOME */}
 
           {messages.length ===
             0 &&
@@ -812,52 +1237,57 @@ export default function Home() {
               </div>
             )}
 
-          {/* =================================================
-              CONVERSATION LOADING
-          ================================================== */}
+          {/* HISTORY LOADING */}
 
           {loadingHistory && (
             <div className="loading-history">
-              Loading conversation...
+
+              <div className="spinner" />
+
+              <span>
+                Loading conversation...
+              </span>
+
             </div>
           )}
 
-          {/* =================================================
-              CHAT MESSAGES
-          ================================================== */}
+          {/* MESSAGE LIST */}
 
-          {messages.map(
-            (
-              message,
-              index
-            ) => (
-              <div
-                key={`${index}-${message.role}`}
-                className={`message-row ${message.role}`}
-              >
+          {!loadingHistory &&
+            messages.map(
+              (
+                message,
+                index
+              ) => (
+                <div
+                  key={`${conversationId}-${index}`}
+                  className={`message-row ${message.role}`}
+                >
 
-                <div className="avatar">
+                  <div className="avatar">
 
-                  {message.role ===
-                  "user"
-                    ? "U"
-                    : "🛒"}
+                    {message.role ===
+                    "user"
+                      ? "U"
+                      : "🛒"}
+
+                  </div>
+
+                  <div className="message">
+
+                    <MessageContent
+                      content={
+                        message.content
+                      }
+                    />
+
+                  </div>
 
                 </div>
+              )
+            )}
 
-                <div className="message">
-
-                  {message.content}
-
-                </div>
-
-              </div>
-            )
-          )}
-
-          {/* =================================================
-              TYPING INDICATOR
-          ================================================== */}
+          {/* TYPING */}
 
           {loading && (
             <div className="message-row assistant">
@@ -877,11 +1307,15 @@ export default function Home() {
             </div>
           )}
 
+          <div
+            ref={messagesEndRef}
+          />
+
         </div>
 
         {/* =================================================
-            INPUT AREA
-        ================================================== */}
+            INPUT
+        ================================================= */}
 
         <div className="input-area">
 
@@ -889,9 +1323,7 @@ export default function Home() {
 
             <textarea
               value={input}
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 setInput(
                   event.target.value
                 )
@@ -901,18 +1333,22 @@ export default function Home() {
               }
               placeholder="Ask your Ecommerce Agent..."
               rows={1}
-              disabled={loading}
+              disabled={
+                loading ||
+                loadingHistory
+              }
             />
 
             <button
-              onClick={
-                sendMessage
+              type="button"
+              onClick={() =>
+                void sendMessage()
               }
               disabled={
                 loading ||
+                loadingHistory ||
                 !input.trim()
               }
-              aria-label="Send message"
             >
               ↑
             </button>
@@ -927,7 +1363,29 @@ export default function Home() {
         </div>
 
       </section>
-
     </main>
+  );
+}
+
+/* =========================================================
+   MESSAGE CONTENT
+========================================================= */
+
+function MessageContent({
+  content,
+}: {
+  content: string;
+}) {
+  /*
+   * Keep normal text readable.
+   *
+   * The CSS white-space setting also preserves
+   * Markdown tables and line breaks.
+   */
+
+  return (
+    <div className="message-content">
+      {content}
+    </div>
   );
 }
