@@ -682,8 +682,7 @@ export default function Home() {
               </h1>
 
               <p>
-                Powered by Elastic Agent
-                Builder
+               Powered by 8bit system private limited
               </p>
 
             </div>
