@@ -1076,18 +1076,7 @@ export default function Home() {
 
         <header className="chat-header">
 
-          <button
-            type="button"
-            className="mobile-menu"
-            onClick={() =>
-              setSidebarOpen(
-                true
-              )
-            }
-            aria-label="Open conversations"
-          >
-            ☰
-          </button>
+        
 
           <div className="header-agent">
 
