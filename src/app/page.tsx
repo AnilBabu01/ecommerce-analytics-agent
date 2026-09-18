@@ -7,9 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
-type Role =
-  | "user"
-  | "assistant";
+type Role = "user" | "assistant";
 
 type Message = {
   role: Role;
@@ -61,6 +59,11 @@ type ConversationDetail = {
 
   status?: string;
 
+  /*
+   * API error response
+   */
+  error?: string;
+
   rounds?: Round[];
 
   messages?: unknown[];
@@ -91,9 +94,7 @@ export default function Home() {
   const [
     conversations,
     setConversations,
-  ] = useState<Conversation[]>(
-    []
-  );
+  ] = useState<Conversation[]>([]);
 
   const [loading, setLoading] =
     useState(false);
@@ -110,9 +111,7 @@ export default function Home() {
     useState(false);
 
   const messagesEndRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
+    useRef<HTMLDivElement | null>(null);
 
   /*
    * =======================================================
@@ -131,11 +130,9 @@ export default function Home() {
    */
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView(
-      {
-        behavior: "smooth",
-      }
-    );
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   }, [
     messages,
     loading,
@@ -169,12 +166,9 @@ export default function Home() {
         );
       }
 
-      let list: Conversation[] =
-        [];
+      let list: Conversation[] = [];
 
-      if (
-        Array.isArray(data)
-      ) {
+      if (Array.isArray(data)) {
         list = data;
       } else if (
         Array.isArray(
@@ -555,7 +549,7 @@ export default function Home() {
       }
 
       /*
-       * THIS reads:
+       * Reads:
        *
        * rounds[].input.message
        * rounds[].response.message
@@ -594,8 +588,7 @@ export default function Home() {
   function extractConversationMessages(
     data: ConversationDetail
   ): Message[] {
-    const result: Message[] =
-      [];
+    const result: Message[] = [];
 
     /*
      * PRIMARY FORMAT
@@ -617,8 +610,9 @@ export default function Home() {
     if (
       Array.isArray(data.rounds)
     ) {
-      for (const round of
-        data.rounds) {
+      for (
+        const round of data.rounds
+      ) {
         addRound(
           round,
           result
@@ -638,9 +632,11 @@ export default function Home() {
           ?.rounds
       )
     ) {
-      for (const round of
-        data.conversation!
-          .rounds!) {
+      for (
+        const round of
+          data.conversation
+            .rounds
+      ) {
         addRound(
           round,
           result
